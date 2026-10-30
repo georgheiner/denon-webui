@@ -1,0 +1,523 @@
+/* Apple-Stil für das Web: Systemschrift, iOS-Systemfarben, gruppierte Karten, Materialien mit Blur.
+   Farben ausschließlich über Tokens, damit Hell/Dunkel und Kontrast-Varianten an einer Stelle hängen. */
+
+:root {
+  --bg: #f2f2f7;
+  --card: #ffffff;
+  --fill: rgba(120, 120, 128, 0.16);      /* systemFill-artig: Slider-Spur, Segmente */
+  --fill-strong: rgba(120, 120, 128, 0.24);
+  --label: #000000;
+  --label-2: rgba(60, 60, 67, 0.6);
+  --label-3: rgba(60, 60, 67, 0.3);
+  --separator: rgba(60, 60, 67, 0.18);
+  --accent: #007aff;
+  --accent-text: #ffffff;
+  --green: #34c759;
+  --red: #ff3b30;
+  --orange: #ff9500;
+  --vol-fill: #ffffff;
+  --vol-track: rgba(120, 120, 128, 0.32);
+  --material: rgba(242, 242, 247, 0.72);
+  --material-edge: rgba(255, 255, 255, 0.5);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 16px rgba(0, 0, 0, 0.04);
+  --thumb-shadow: 0 3px 8px rgba(0, 0, 0, 0.12), 0 3px 1px rgba(0, 0, 0, 0.04);
+
+  --radius-card: 1.25rem;
+  --radius-ctrl: 0.75rem;
+  --tap: 2.75rem; /* 44 pt Mindestgröße für Touch */
+  --gutter: 1rem;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --spring: cubic-bezier(0.34, 1.2, 0.64, 1); /* leichte Federung nur für das Segment-Thumb */
+
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #000000;
+    --card: #1c1c1e;
+    --fill: rgba(120, 120, 128, 0.24);
+    --fill-strong: rgba(120, 120, 128, 0.36);
+    --label: #ffffff;
+    --label-2: rgba(235, 235, 245, 0.6);
+    --label-3: rgba(235, 235, 245, 0.3);
+    --separator: rgba(84, 84, 88, 0.6);
+    --accent: #0a84ff;
+    --green: #30d158;
+    --red: #ff453a;
+    --orange: #ff9f0a;
+    --vol-fill: #ffffff;
+    --vol-track: rgba(120, 120, 128, 0.36);
+    --material: rgba(18, 18, 20, 0.72);
+    --material-edge: rgba(255, 255, 255, 0.08);
+    --shadow: none;
+    --thumb-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+  }
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--label);
+  font: 100%/1.4 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  touch-action: manipulation; /* keine 300-ms-Verzögerung durch Doppeltipp-Zoom */
+  -webkit-user-select: none;
+  user-select: none;
+}
+button:focus-visible, .vol-slider:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent) 60%, transparent);
+  outline-offset: 2px;
+}
+
+svg { width: 1.375rem; height: 1.375rem; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ---------- Kopfleiste als Material ---------- */
+
+.bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding-top: env(safe-area-inset-top);
+  background: var(--material);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  /* Scroll-Edge-Effekt statt harter Linie: erscheint erst, wenn Inhalt darunter liegt */
+  box-shadow: 0 1px 0 var(--edge, transparent);
+  transition: box-shadow 200ms ease;
+}
+body.scrolled .bar { --edge: var(--separator); }
+
+.bar-inner {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 0.75rem max(var(--gutter), env(safe-area-inset-right)) 0.75rem max(var(--gutter), env(safe-area-inset-left));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+/* Logo über dem Modellnamen; überschreibt die allgemeine Icon-Regel für svg */
+.brand {
+  display: block;
+  width: auto;
+  height: 1.125rem; /* Versalhöhe des Schriftzugs; viewBox ist bündig zugeschnitten */
+  margin-bottom: 0.5rem;
+  fill: currentColor;
+  stroke: none;
+  color: var(--label);
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.25rem;
+  line-height: 1.15;
+  font-weight: 300; /* dünn, damit das Logo führt */
+  letter-spacing: 0.01em;
+}
+
+.titles { min-width: 0; flex: 1; }
+
+/* Laufband über die volle Breite am unteren Rand der Kopfleiste, läuft immer (Nutzerwunsch:
+   wie ein Nachrichtenticker – deshalb auch bei „Bewegung reduzieren“, dort nur langsamer). */
+.now-playing {
+  margin: 0;
+  border-top: 0.5px solid var(--separator);
+  /* Textanfang in einer Flucht mit Kopfzeile und Karten, auch wenn die Seite breiter als 64rem ist */
+  padding: 0.45rem 0 0.5rem max(var(--gutter), env(safe-area-inset-left), calc((100% - 64rem) / 2 + var(--gutter)));
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  mask-image: linear-gradient(90deg, transparent 0, #000 1.5rem, #000 calc(100% - 1.5rem), transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 1.5rem, #000 calc(100% - 1.5rem), transparent);
+}
+.now-playing.is-paused { color: var(--label-2); }
+.np-track { display: inline-flex; gap: 4rem; will-change: transform; } /* Bewegung per JS (Web Animations) */
+
+.status {
+  margin: 0.125rem 0 0;
+  font-size: 0.9375rem;
+  color: var(--label-2);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--green); transition: background 200ms ease; }
+body.is-offline .dot { background: var(--orange); animation: pulse 1.6s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: 0.35; } }
+
+.power {
+  flex: none;
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--fill);
+  color: var(--label-2);
+  transition: background 200ms ease, color 200ms ease, transform 120ms var(--ease-out);
+}
+.power svg { width: 1.5rem; height: 1.5rem; stroke-width: 2.4; }
+.power[aria-pressed="true"] { background: var(--green); color: #fff; }
+.power.is-pending { animation: pulse 1s ease-in-out infinite; }
+
+/* Reaktion beim Drücken, nicht erst beim Loslassen */
+.power:active, .round:active, .pill:active, .input-tile:active, .stepper button:active { transform: scale(0.95); transition-duration: 60ms; }
+
+/* ---------- Layout ---------- */
+
+main {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 0.5rem max(var(--gutter), env(safe-area-inset-right)) 2rem max(var(--gutter), env(safe-area-inset-left));
+}
+
+.layout { display: grid; gap: var(--gutter); }
+
+/* Desktop: zwei Spalten, Karten fließen in Reihenfolge (Lautstärke, Wiedergabe | Klang, Quelle) */
+@media (min-width: 52rem) {
+  .layout { display: block; columns: 2; column-gap: var(--gutter); }
+  .layout > .card { break-inside: avoid; margin-bottom: var(--gutter); }
+}
+
+.standby-hint {
+  margin: 0.25rem 0 0.75rem;
+  font-size: 0.9375rem;
+  color: var(--label-2);
+  display: none;
+}
+body.is-off:not(.is-offline) .standby-hint { display: block; }
+
+.card {
+  background: var(--card);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow);
+  padding: 1rem;
+  transition: opacity 250ms ease;
+}
+
+.card-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 0.75rem; }
+
+h2 {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: 0.02em; /* kleine Schrift: leicht positives Tracking */
+  text-transform: uppercase;
+  color: var(--label-2);
+}
+
+/* Im Standby nimmt der Receiver Lautstärke/Mute nicht an → Bedienung sichtbar sperren */
+body.is-off .needs-power, body.is-offline .needs-power { opacity: 0.4; pointer-events: none; }
+
+/* ---------- Lautstärke ---------- */
+
+.vol-limit { font-size: 0.8125rem; color: var(--label-3); font-variant-numeric: tabular-nums; }
+
+.vol-readout { display: flex; align-items: baseline; gap: 0.6rem; margin-bottom: 0.875rem; }
+.vol-value {
+  font-size: 3.5rem;
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+.vol-db { font-size: 1.0625rem; color: var(--label-2); font-variant-numeric: tabular-nums; }
+.volume.is-muted .vol-value { color: var(--label-3); }
+
+/* Großer Slider im Stil des Kontrollzentrums: relative Bewegung, Tippen allein springt nicht */
+.vol-slider {
+  position: relative;
+  height: 3.75rem;
+  border-radius: 1.125rem;
+  background: var(--vol-track);
+  overflow: hidden;
+  touch-action: none;
+  cursor: grab;
+  transform-origin: var(--rb-origin, left center);
+  transition: transform 350ms var(--ease-out);
+}
+.vol-slider.is-dragging { cursor: grabbing; transition: none; }
+.vol-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--vol-fill);
+  transform-origin: left center;
+  transform: scaleX(var(--p, 0));
+  transition: transform 180ms var(--ease-out);
+  will-change: transform;
+}
+@media (prefers-color-scheme: light) { .vol-fill { background: var(--accent); } }
+.vol-slider.is-dragging .vol-fill { transition: none; }
+.volume.is-muted .vol-fill { background: var(--label-3); }
+.vol-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  translate: 0 -50%;
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--label-2);
+  pointer-events: none;
+  transition: color 150ms ease;
+}
+/* Sobald die Füllung das Symbol bedeckt, Symbol in Kontrastfarbe zur Füllung */
+.vol-slider.icon-covered .vol-icon { color: var(--accent-text); }
+@media (prefers-color-scheme: dark) { .vol-slider.icon-covered .vol-icon { color: #000; } }
+.volume.is-muted .vol-slider.icon-covered .vol-icon { color: var(--card); }
+
+.vol-buttons {
+  display: grid;
+  grid-template-columns: var(--tap) 1fr var(--tap);
+  gap: 0.75rem;
+  align-items: center;
+  margin-top: 0.875rem;
+}
+
+.round {
+  width: var(--tap);
+  height: var(--tap);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--fill);
+  transition: transform 120ms var(--ease-out), opacity 150ms ease;
+}
+.round:disabled { opacity: 0.35; cursor: default; }
+
+.pill {
+  height: var(--tap);
+  border-radius: calc(var(--tap) / 2);
+  background: var(--fill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  transition: background 200ms ease, color 200ms ease, transform 120ms var(--ease-out);
+}
+.pill[aria-pressed="true"] { background: var(--red); color: #fff; }
+
+/* ---------- Wiedergabe ---------- */
+
+.pb-source { font-size: 0.8125rem; color: var(--label-2); }
+
+.transport {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 0.25rem 0;
+}
+.transport-btn {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--label);
+  transition: transform 120ms var(--ease-out), background 150ms ease;
+}
+.transport-btn svg { width: 1.75rem; height: 1.75rem; fill: currentColor; stroke: none; }
+.transport-btn:active { transform: scale(0.9); background: var(--fill); transition-duration: 60ms; }
+.transport-btn.is-main { width: 4.5rem; height: 4.5rem; background: var(--fill); }
+.transport-btn.is-main svg { width: 2.25rem; height: 2.25rem; }
+.transport-btn .i-pause { display: none; }
+.transport-btn.is-playing .i-play { display: none; }
+.transport-btn.is-playing .i-pause { display: block; }
+
+/* ---------- Quellen ---------- */
+
+.inputs { display: grid; grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); gap: 0.5rem; }
+
+.input-tile {
+  min-height: 3.5rem;
+  border-radius: var(--radius-ctrl);
+  background: var(--fill);
+  text-align: left;
+  padding: 0.625rem 0.875rem;
+  font-weight: 500;
+  font-size: 0.9375rem;
+  line-height: 1.25;
+  display: flex;
+  align-items: center;
+  transition: background 200ms ease, color 200ms ease, transform 120ms var(--ease-out);
+}
+.input-tile[aria-checked="true"] { background: var(--accent); color: var(--accent-text); font-weight: 600; }
+
+/* ---------- Klang ---------- */
+
+.segmented {
+  position: relative;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  padding: 0.125rem;
+  border-radius: 0.6rem;
+  background: var(--fill);
+  min-height: 2.5rem;
+}
+/* Thumb rein aus Index und Anzahl berechnet – kein Ausmessen, daher nie versetzt */
+.seg-thumb {
+  position: absolute;
+  top: 0.125rem;
+  bottom: 0.125rem;
+  left: 0.125rem;
+  width: calc((100% - 0.25rem) / var(--seg-n, 1));
+  border-radius: 0.5rem;
+  background: var(--card);
+  box-shadow: var(--thumb-shadow);
+  transform: translateX(calc(100% * var(--seg-i, 0)));
+  transition: transform 320ms var(--spring), opacity 200ms ease;
+  opacity: var(--seg-o, 0);
+}
+@media (prefers-color-scheme: dark) { .seg-thumb { background: #636366; } }
+.segmented button {
+  position: relative;
+  z-index: 1;
+  min-height: 2.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 0.5rem;
+}
+.segmented button[aria-checked="true"] { font-weight: 600; }
+
+.tone { margin-top: 0.75rem; }
+.tone-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--tap);
+  padding: 0.25rem 0;
+}
+.tone-row + .tone-row { border-top: 0.5px solid var(--separator); }
+.tone-name { font-size: 1.0625rem; }
+.stepper { display: flex; align-items: center; gap: 0.25rem; background: var(--fill); border-radius: 0.6rem; padding: 0.125rem; }
+.stepper button { width: 2.75rem; height: 2.25rem; border-radius: 0.5rem; display: grid; place-items: center; transition: transform 120ms var(--ease-out), opacity 150ms ease; }
+.stepper button svg { width: 1.125rem; height: 1.125rem; }
+.stepper button:disabled { opacity: 0.3; cursor: default; }
+.tone-value { min-width: 3.75rem; text-align: center; font-variant-numeric: tabular-nums; font-size: 0.9375rem; font-weight: 500; }
+
+/* ---------- Einstellungen / Bildschirmmenü ---------- */
+
+.hint { font-size: 0.8125rem; color: var(--label-3); }
+
+.menu-toggle { width: 100%; }
+.menu-toggle[aria-pressed="true"] { background: var(--accent); color: var(--accent-text); }
+
+/* Steuerkreuz wie auf der Fernbedienung: runde Fläche, OK in der Mitte */
+.dpad {
+  --size: 12.5rem;
+  width: var(--size);
+  height: var(--size);
+  margin: 1rem auto 0.75rem;
+  border-radius: 50%;
+  background: var(--fill);
+  display: grid;
+  grid-template: 1fr 1.15fr 1fr / 1fr 1.15fr 1fr;
+  grid-template-areas: ". up ." "left enter right" ". down .";
+  place-items: center;
+}
+.dpad button {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--label);
+  transition: transform 120ms var(--ease-out), background 150ms ease;
+}
+.dpad button svg { width: 1.75rem; height: 1.75rem; stroke-width: 2.4; }
+.dpad button:active { background: var(--fill-strong); transform: scale(0.92); transition-duration: 60ms; }
+.dpad-up { grid-area: up; }
+.dpad-down { grid-area: down; }
+.dpad-left { grid-area: left; }
+.dpad-right { grid-area: right; }
+.dpad .dpad-enter {
+  grid-area: enter;
+  width: 4.25rem;
+  height: 4.25rem;
+  background: var(--card);
+  box-shadow: var(--thumb-shadow);
+  font-weight: 600;
+}
+
+.menu-keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
+
+/* Gleiche Zeilenoptik wie Bass/Höhen/Balance: 44 pt hoch, 17 pt Text, Trennlinien nur zwischen Zeilen */
+.info-list { margin: 0.75rem 0 0; }
+.info-list div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: var(--tap);
+  padding: 0.25rem 0;
+  font-size: 1.0625rem;
+}
+.info-list div + div { border-top: 0.5px solid var(--separator); }
+.info-list dt { color: var(--label); }
+.info-list dd { margin: 0; color: var(--label-2); font-variant-numeric: tabular-nums; text-align: right; }
+.info-list dd.is-update { color: var(--orange); font-weight: 600; }
+
+/* ---------- Hinweis-Toast ---------- */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(1.25rem + env(safe-area-inset-bottom));
+  max-width: calc(100% - 2rem);
+  padding: 0.625rem 1rem;
+  border-radius: 999px;
+  background: var(--material);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  border: 0.5px solid var(--material-edge);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  translate: -50% 1rem;
+  scale: 0.96;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms ease, translate 300ms var(--ease-out), scale 300ms var(--ease-out);
+}
+.toast.is-visible { opacity: 1; translate: -50% 0; scale: 1; }
+
+/* ---------- Barrierefreiheit ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; }
+  .vol-slider, .seg-thumb, .toast { transition: opacity 150ms ease !important; }
+  .vol-slider { transform: none !important; }
+  .toast { translate: -50% 0; scale: 1; }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  :root { --material: var(--bg); }
+  .bar, .toast { -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+
+@media (prefers-contrast: more) {
+  :root { --fill: rgba(120, 120, 128, 0.3); --label-2: var(--label); --separator: var(--label-3); }
+  .card, .input-tile, .round, .pill, .segmented, .stepper { outline: 1px solid var(--label-3); }
+}

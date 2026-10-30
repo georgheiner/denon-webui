@@ -1,0 +1,9 @@
+.env
+__pycache__/
+*.pyc
+.pytest_cache/
+.DS_Store
+
+# Fotos, die nur zur Abstimmung dienen
+*.HEIC
+*.heic

@@ -1,0 +1,9 @@
+services:
+  denon-webui:
+    build: .
+    image: denon-webui:latest
+    container_name: denon-webui
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "${WEB_PORT:-8000}:8000"

@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+  <title>Receiver</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body class="is-off is-offline">
+  <header class="bar">
+    <div class="bar-inner">
+      <div class="titles">
+        <!-- Denon-Schriftzug, Quelle: commons.wikimedia.org/wiki/File:Denon_Logo.svg (Public Domain); Farbe folgt dem Text -->
+        <!-- viewBox auf die Buchstaben zugeschnitten, damit das D bündig mit dem Modellnamen steht -->
+        <svg class="brand" viewBox="35.43 35.39 885.83 196.4" role="img" aria-label="Denon">
+          <g transform="translate(2484.9579,1777.5383)"><g transform="matrix(5.7330391,0,0,5.7330391,11796.837,7518.9723)" fill="currentColor">
+            <path d="M -2424.6656,-1603.2813 L -2402.8114,-1581.5133 L -2402.8114,-1614.3555 L -2407.8284,-1614.3555 L -2407.8284,-1593.8793 L -2429.7292,-1615.148 L -2429.7292,-1582.2674 L -2424.7122,-1582.2674 L -2424.7122,-1603.0718 L -2424.6656,-1603.2813"/>
+            <path d="M -2453.6182,-1582.2674 L -2453.6182,-1614.3555 L -2435.6626,-1614.3555 L -2435.6626,-1609.349 L -2448.6012,-1609.3456 L -2448.6012,-1601.8079 L -2438.5827,-1601.8114 L -2438.5827,-1596.805 L -2448.6012,-1596.805 L -2448.6012,-1587.2739 L -2448.6012,-1587.2739 L -2435.7403,-1587.2739 L -2435.7403,-1582.2674 L -2453.6182,-1582.2674"/>
+            <path d="M -2352.455,-1603.3336 L -2330.4455,-1581.639 L -2330.4455,-1614.3555 L -2335.4625,-1614.3555 L -2335.4625,-1593.6314 L -2335.4935,-1593.7257 L -2357.5186,-1615.169 L -2357.5186,-1582.2674 L -2352.4395,-1582.2674 L -2352.4395,-1603.2079 L -2352.455,-1603.3336"/>
+            <path d="M -2484.9581,-1614.3555 L -2484.9581,-1582.2674 L -2474.3075,-1582.2674 C -2474.3075,-1582.2674 -2459.2565,-1583.5208 -2459.2565,-1598.4354 C -2459.2565,-1613.8109 -2474.3385,-1614.3555 -2474.3385,-1614.3555 L -2484.9581,-1614.3555 z M -2479.9458,-1587.026 L -2479.9458,-1609.7156 L -2475.519,-1609.7156 C -2475.519,-1609.7156 -2464.2114,-1609.9251 -2464.2114,-1598.2469 C -2464.2114,-1587.5811 -2474.4783,-1587.0295 -2474.4783,-1587.0295 L -2479.9458,-1587.026"/>
+            <path d="M -2392.3114,-1598.1421 C -2392.3114,-1604.8663 -2386.9061,-1610.3161 -2380.2582,-1610.3161 C -2373.5948,-1610.3161 -2367.9565,-1605.6623 -2367.9565,-1598.1421 C -2367.9565,-1591.4215 -2373.5948,-1585.9716 -2380.2582,-1585.9716 C -2386.9061,-1585.9716 -2392.3114,-1591.4215 -2392.3114,-1598.1421 z M -2380.2582,-1581.1397 C -2370.3951,-1581.0141 -2362.7531,-1589.6444 -2362.7531,-1597.5591 C -2362.7531,-1606.0812 -2368.8884,-1615.3959 -2380.0097,-1615.3959 C -2388.273,-1615.3959 -2397.4216,-1608.6717 -2397.4216,-1598.1421 C -2397.4216,-1590.231 -2391.3795,-1581.2829 -2380.2582,-1581.1397"/>
+          </g></g>
+        </svg>
+        <h1 id="title">Receiver</h1>
+        <p class="status" id="status"><span class="dot"></span><span id="status-text">Verbinde …</span></p>
+      </div>
+      <button class="power" id="power" type="button" aria-pressed="false" aria-label="Ein/Aus">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg>
+      </button>
+    </div>
+    <!-- Laufband wie ein Nachrichtenticker; Text doppelt für nahtlosen Umlauf -->
+    <p class="now-playing" id="np" hidden>
+      <span class="np-track" id="np-track"><span class="np-text"></span><span class="np-text" aria-hidden="true"></span></span>
+    </p>
+  </header>
+
+  <main>
+    <p class="standby-hint" id="standby-hint">Im Standby. Zum Bedienen einschalten.</p>
+
+    <div class="layout">
+      <section class="card volume needs-power" aria-labelledby="vol-label">
+        <div class="card-head">
+          <h2 id="vol-label">Lautstärke</h2>
+          <span class="vol-limit" id="vol-limit"></span>
+        </div>
+        <div class="vol-readout">
+          <span class="vol-value" id="vol-value">–</span>
+          <span class="vol-db" id="vol-db"></span>
+        </div>
+        <div class="vol-slider" id="vol-slider" role="slider" tabindex="0"
+             aria-labelledby="vol-label" aria-valuemin="0" aria-valuemax="45" aria-valuenow="0">
+          <div class="vol-fill" id="vol-fill"></div>
+          <svg class="vol-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6"/></svg>
+        </div>
+        <div class="vol-buttons">
+          <button class="round" id="vol-down" type="button" aria-label="Leiser">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12"/></svg>
+          </button>
+          <!-- Schalter mit fester Beschriftung: grau = aus, rot = stumm aktiv -->
+          <button class="pill" id="mute" type="button" aria-pressed="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg>
+            <span>Stumm</span>
+          </button>
+          <button class="round" id="vol-up" type="button" aria-label="Lauter">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12M12 6v12"/></svg>
+          </button>
+        </div>
+      </section>
+
+      <!-- Transporttasten wie auf der Fernbedienung; nur sichtbar, wenn über HEOS etwas läuft -->
+      <section class="card playback needs-power" id="playback" aria-labelledby="pb-label" hidden>
+        <div class="card-head">
+          <h2 id="pb-label">Wiedergabe</h2>
+          <span class="pb-source" id="pb-source"></span>
+        </div>
+        <div class="transport">
+          <!-- Hörbuch-/Podcast-Apps springen bei Zurück/Weiter im Titel → Spul-Symbole wie ◀◀ ▶▶ auf der Fernbedienung -->
+          <button class="transport-btn" id="prev" type="button" aria-label="Zurückspulen">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11.5 6.3v11.4a.8.8 0 0 1-1.2.7L1.9 12.7a.8.8 0 0 1 0-1.4l8.4-5.7a.8.8 0 0 1 1.2.7z"/><path d="M22 6.3v11.4a.8.8 0 0 1-1.2.7l-8.4-5.7a.8.8 0 0 1 0-1.4l8.4-5.7a.8.8 0 0 1 1.2.7z"/></svg>
+          </button>
+          <button class="transport-btn is-main" id="playpause" type="button" aria-label="Wiedergabe">
+            <svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.9v14.2a1 1 0 0 0 1.5.9l11.2-7.1a1 1 0 0 0 0-1.8L8.5 4a1 1 0 0 0-1.5.9z"/></svg>
+            <svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true"><rect x="5.5" y="4" width="4.5" height="16" rx="1.2"/><rect x="14" y="4" width="4.5" height="16" rx="1.2"/></svg>
+          </button>
+          <button class="transport-btn" id="next" type="button" aria-label="Vorspulen">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 6.3v11.4a.8.8 0 0 0 1.2.7l8.4-5.7a.8.8 0 0 0 0-1.4L3.2 5.6a.8.8 0 0 0-1.2.7z"/><path d="M12.5 6.3v11.4a.8.8 0 0 0 1.2.7l8.4-5.7a.8.8 0 0 0 0-1.4l-8.4-5.7a.8.8 0 0 0-1.2.7z"/></svg>
+          </button>
+        </div>
+      </section>
+
+      <section class="card needs-power" aria-labelledby="sound-label">
+        <div class="card-head"><h2 id="sound-label">Klang</h2></div>
+        <div class="segmented" id="modes" role="radiogroup" aria-labelledby="sound-label">
+          <span class="seg-thumb" id="seg-thumb"></span>
+        </div>
+        <div class="tone">
+          <div class="tone-row" data-tone="bass">
+            <span class="tone-name">Bass</span>
+            <div class="stepper">
+              <button type="button" data-dir="-1" aria-label="Bass weniger"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12"/></svg></button>
+              <output class="tone-value">0 dB</output>
+              <button type="button" data-dir="1" aria-label="Bass mehr"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12M12 6v12"/></svg></button>
+            </div>
+          </div>
+          <div class="tone-row" data-tone="treble">
+            <span class="tone-name">Höhen</span>
+            <div class="stepper">
+              <button type="button" data-dir="-1" aria-label="Höhen weniger"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12"/></svg></button>
+              <output class="tone-value">0 dB</output>
+              <button type="button" data-dir="1" aria-label="Höhen mehr"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12M12 6v12"/></svg></button>
+            </div>
+          </div>
+          <div class="tone-row" data-tone="balance">
+            <span class="tone-name">Balance</span>
+            <div class="stepper">
+              <button type="button" data-dir="-1" aria-label="Balance nach links"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6l-6 6 6 6"/></svg></button>
+              <output class="tone-value">Mitte</output>
+              <button type="button" data-dir="1" aria-label="Balance nach rechts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card needs-power" aria-labelledby="input-label">
+        <div class="card-head"><h2 id="input-label">Quelle</h2></div>
+        <div class="inputs" id="inputs" role="radiogroup" aria-labelledby="input-label"></div>
+      </section>
+
+      <!-- Bildschirmmenü des Receivers: Bild kommt nur über HDMI, hier nur die Tasten -->
+      <section class="card settings needs-power" aria-labelledby="settings-label">
+        <div class="card-head">
+          <h2 id="settings-label">Einstellungen</h2>
+          <span class="hint">Anzeige auf dem Fernseher</span>
+        </div>
+
+        <button class="pill menu-toggle" id="menu-toggle" type="button" aria-pressed="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M21.5 12h-3M5.5 12h-3M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1M18.7 18.7l-2.1-2.1M7.4 7.4 5.3 5.3"/></svg>
+          <span id="menu-toggle-label">Setup-Menü öffnen</span>
+        </button>
+
+        <div class="dpad" id="dpad">
+          <button type="button" class="dpad-up" data-key="up" aria-label="Hoch"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg></button>
+          <button type="button" class="dpad-left" data-key="left" aria-label="Links"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+          <button type="button" class="dpad-enter" data-key="enter">OK</button>
+          <button type="button" class="dpad-right" data-key="right" aria-label="Rechts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+          <button type="button" class="dpad-down" data-key="down" aria-label="Runter"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+        </div>
+
+        <div class="menu-keys" id="menu-keys">
+          <button type="button" class="pill" data-key="back">Zurück</button>
+          <button type="button" class="pill" data-key="option">Option</button>
+          <button type="button" class="pill" data-key="info">Info</button>
+        </div>
+
+        <dl class="info-list">
+          <div><dt>Firmware</dt><dd id="fw">–</dd></div>
+          <div><dt>HEOS</dt><dd id="heos-version">–</dd></div>
+          <div><dt>Update</dt><dd id="update">–</dd></div>
+        </dl>
+      </section>
+    </div>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
