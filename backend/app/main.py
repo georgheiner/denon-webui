@@ -15,6 +15,7 @@ from pydantic import BaseModel
 from .client import DenonClient
 from .heos import HeosClient
 from .protocol import CommandError
+from .tv import TvClient
 
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "INFO").upper(),
@@ -26,17 +27,23 @@ if not DENON_HOST:
     raise SystemExit("DENON_HOST ist nicht gesetzt (IP des Receivers, siehe .env.example)")
 DENON_PORT = int(os.environ.get("DENON_PORT", "23"))
 MAX_VOLUME = float(os.environ.get("MAX_VOLUME", "45"))
+TV_HOST = os.environ.get("TV_HOST")  # optional: Philips-Fernseher (jointSPACE)
 FRONTEND_DIR = Path(os.environ.get("FRONTEND_DIR", Path(__file__).resolve().parents[2] / "frontend"))
 
 client = DenonClient(DENON_HOST, DENON_PORT, volume_limit=MAX_VOLUME)
 heos = HeosClient(DENON_HOST, client.state, client.notify)
+tv = TvClient(TV_HOST, client.state, client.notify) if TV_HOST else None
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     await client.start()
     await heos.start()
+    if tv:
+        await tv.start()
     yield
+    if tv:
+        await tv.stop()
     await heos.stop()
     await client.stop()
 
@@ -62,6 +69,8 @@ class Command(BaseModel):
 def _execute(command: Command) -> None:
     if command.cmd in HeosClient.COMMANDS:
         heos.control(command.cmd, command.value)
+    elif tv and command.cmd in TvClient.COMMANDS:
+        tv.control(command.cmd, command.value)
     else:
         client.send(command.cmd, command.value)
 

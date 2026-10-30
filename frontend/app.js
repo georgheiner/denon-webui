@@ -19,7 +19,7 @@ let ws = null;
 let server = null; // letzter Zustand vom Backend
 const pending = new Map(); // key → { value, until }
 let drag = null; // aktive Slider-Geste
-let inputsKey = "", modesKey = "";
+let inputsKey = "", modesKey = "", tvSourcesKey = "";
 
 // ---------- Zustand ----------
 
@@ -50,6 +50,9 @@ function connect() {
       server = msg.state;
       // Wiedergabestatus flach ablegen, damit view()/pending wie bei anderen Werten funktionieren
       server.play_state = server.now_playing ? server.now_playing.state : null;
+      server.tv_source = server.tv ? server.tv.source : null;
+      server.tv_ambilight = !server.tv ? null
+        : server.tv.ambilight_mode === "internal" ? "follow" : server.tv.ambilight;
       reconcile();
       render();
     } else if (msg.type === "error") {
@@ -112,7 +115,168 @@ function render() {
   renderModes();
   for (const name of Object.keys(TONES)) renderTone(name);
   renderSettings();
+  renderTv();
 }
+
+// Fernseher: unabhängig vom Receiver, eigener Erreichbarkeitsstatus
+function renderTv() {
+  const tv = server.tv;
+  const card = $("#tv");
+  card.hidden = !tv;
+  if (!tv) return;
+  card.classList.toggle("is-unreachable", !tv.connected);
+  const source = tv.sources.find((s) => s.code === view("tv_source"));
+  $("#tv-status").textContent = tv.connected ? (source ? source.name : "Eingeschaltet") : "Aus";
+
+  const box = $("#tv-sources");
+  const key = JSON.stringify(tv.sources);
+  if (key !== tvSourcesKey) {
+    tvSourcesKey = key;
+    box.replaceChildren(...tv.sources.map(({ code, name }) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "input-tile";
+      b.setAttribute("role", "radio");
+      b.dataset.code = code;
+      b.textContent = name;
+      return b;
+    }));
+  }
+  for (const b of box.children) b.setAttribute("aria-checked", String(b.dataset.code === view("tv_source")));
+  renderAmbi();
+}
+
+// ---------- Ambilight ----------
+
+// Eigene Farbe als Farbton/Sättigung/Helligkeit; wird lokal gemerkt, damit das Farbfeld
+// beim nächsten Öffnen wieder dort steht
+let ambi = { h: 30, s: 0.9, v: 1 };
+let ambiDrag = null;
+let ambiSent = "";
+try { Object.assign(ambi, JSON.parse(localStorage.getItem("ambi")) || {}); } catch {}
+
+function hsvToHex({ h, s, v }) {
+  const f = (n) => {
+    const k = (n + h / 60) % 6;
+    return Math.round(255 * (v - v * s * Math.max(0, Math.min(k, 4 - k, 1))));
+  };
+  return "#" + [f(5), f(3), f(1)].map((x) => x.toString(16).padStart(2, "0")).join("");
+}
+
+function hexToHsv(hex) {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+  const max = Math.max(r, g, b), d = max - Math.min(r, g, b);
+  const h = d === 0 ? 0 : max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return { h: (h * 60 + 360) % 360, s: max ? d / max : 0, v: max };
+}
+
+function renderAmbi() {
+  const value = view("tv_ambilight");
+  // Von anderswo gesetzte Farbe übernehmen (anderes Gerät, Neustart), nicht während des Ziehens
+  if (!ambiDrag && value && value.startsWith("#") && value !== ambiSent && value !== hsvToHex(ambi)) {
+    ambi = hexToHsv(value);
+  }
+  const follow = !value || value === "follow";
+  const box = $("#ambi");
+  box.classList.toggle("is-follow", follow);
+  const seg = $("#ambi-mode");
+  const buttons = [...seg.querySelectorAll("button")];
+  buttons.forEach((b) => b.setAttribute("aria-checked", String((b.dataset.mode === "follow") === follow)));
+  seg.style.setProperty("--seg-n", 2);
+  seg.style.setProperty("--seg-o", 1);
+  seg.style.setProperty("--seg-i", follow ? 0 : 1);
+
+  const full = hsvToHex({ ...ambi, v: 1 });
+  const map = $("#ambi-map");
+  map.style.setProperty("--x", ambi.h / 360);
+  map.style.setProperty("--y", 1 - ambi.s);
+  map.style.setProperty("--ambi-color", full);
+  map.setAttribute("aria-valuenow", Math.round(ambi.h));
+  const bright = $("#ambi-bright");
+  bright.style.setProperty("--v", ambi.v);
+  bright.style.setProperty("--ambi-full", full);
+  bright.style.setProperty("--ambi-color", hsvToHex(ambi));
+  bright.setAttribute("aria-valuenow", Math.round(ambi.v * 100));
+  for (const b of $("#ambi-scenes").children) {
+    b.setAttribute("aria-pressed", String(value === `scene:${b.dataset.scene}`));
+  }
+}
+
+function sendAmbi(value) {
+  if (send("tv_ambilight", value)) {
+    ambiSent = value;
+    setPending("tv_ambilight", value);
+  }
+}
+
+function sendAmbiColor() {
+  try { localStorage.setItem("ambi", JSON.stringify(ambi)); } catch {}
+  sendAmbi(hsvToHex(ambi));
+}
+
+// Farbfeld und Helligkeit: Antippen setzt sofort, Ziehen folgt live (getaktet wie die Lautstärke)
+function ambiControl(el, apply) {
+  const update = (e) => {
+    const r = el.getBoundingClientRect();
+    apply(Math.max(0, Math.min((e.clientX - r.left) / r.width, 1)),
+          Math.max(0, Math.min((e.clientY - r.top) / r.height, 1)));
+    const now = performance.now();
+    if (now - ambiDrag.lastSent >= VOLUME_SEND_MS) {
+      ambiDrag.lastSent = now;
+      sendAmbiColor();
+    }
+    renderAmbi();
+  };
+  el.addEventListener("pointerdown", (e) => {
+    el.setPointerCapture(e.pointerId);
+    ambiDrag = { lastSent: 0 };
+    update(e);
+  });
+  el.addEventListener("pointermove", (e) => { if (ambiDrag) update(e); });
+  const end = () => {
+    if (!ambiDrag) return;
+    ambiDrag = null;
+    sendAmbiColor(); // letzter Stand geht immer raus
+    renderAmbi();
+  };
+  el.addEventListener("pointerup", end);
+  el.addEventListener("pointercancel", end);
+}
+ambiControl($("#ambi-map"), (x, y) => { ambi.h = x * 360; ambi.s = 1 - y; });
+ambiControl($("#ambi-bright"), (x) => { ambi.v = x; });
+
+$("#ambi-map").addEventListener("keydown", (e) => {
+  const d = { ArrowRight: [5, 0], ArrowLeft: [-5, 0], ArrowUp: [0, 0.05], ArrowDown: [0, -0.05] }[e.key];
+  if (!d) return;
+  e.preventDefault();
+  ambi.h = (ambi.h + d[0] + 360) % 360;
+  ambi.s = Math.max(0, Math.min(ambi.s + d[1], 1));
+  sendAmbiColor();
+  renderAmbi();
+});
+$("#ambi-bright").addEventListener("keydown", (e) => {
+  const d = { ArrowRight: 0.05, ArrowUp: 0.05, ArrowLeft: -0.05, ArrowDown: -0.05 }[e.key];
+  if (d === undefined) return;
+  e.preventDefault();
+  ambi.v = Math.max(0, Math.min(ambi.v + d, 1));
+  sendAmbiColor();
+  renderAmbi();
+});
+
+$("#ambi-mode").addEventListener("click", (e) => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  if (b.dataset.mode === "follow") sendAmbi("follow");
+  else sendAmbiColor();
+  renderAmbi();
+});
+
+$("#ambi-scenes").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-scene]");
+  if (!b) return;
+  sendAmbi(`scene:${b.dataset.scene}`);
+  renderAmbi();
+});
 
 function renderSettings() {
   const open = !!view("menu_open");
@@ -307,6 +471,35 @@ for (const box of [$("#dpad"), $("#menu-keys")]) {
     if (b) send("menu", b.dataset.key);
   });
 }
+
+// Fernseher-Tasten: jeder Druck einzeln, wie auf der Fernbedienung
+for (const box of [$("#tv-top"), $("#tv-dpad"), $("#tv-keys")]) {
+  box.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-key]");
+    if (!b) return;
+    // Wieder einschalten geht nur mit der Fernbedienung → Ausschalten mit zweitem Tipp bestätigen
+    if (b.dataset.key === "standby" && !b.classList.contains("is-confirm")) {
+      b.classList.add("is-confirm");
+      b.querySelector("span").textContent = "Wirklich aus?";
+      setTimeout(() => resetStandby(b), 3000);
+      return;
+    }
+    if (b.dataset.key === "standby") resetStandby(b);
+    send("tv_key", b.dataset.key);
+  });
+}
+function resetStandby(b) {
+  b.classList.remove("is-confirm");
+  b.querySelector("span").textContent = "Ausschalten";
+}
+
+$("#tv-sources").addEventListener("click", (e) => {
+  const b = e.target.closest(".input-tile");
+  if (b && send("tv_source", b.dataset.code)) {
+    setPending("tv_source", b.dataset.code);
+    render();
+  }
+});
 
 $("#inputs").addEventListener("click", (e) => {
   const b = e.target.closest(".input-tile");

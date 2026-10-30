@@ -464,6 +464,69 @@ body.is-off .needs-power, body.is-offline .needs-power { opacity: 0.4; pointer-e
 
 .menu-keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
 
+/* ---------- Fernseher ---------- */
+
+.tv .tv-top { grid-template-columns: repeat(2, 1fr); margin-bottom: 0.75rem; }
+.tv-off-hint { display: none; margin: 0 0 0.75rem; font-size: 0.9375rem; color: var(--label-2); }
+/* Aus = nicht erreichbar: Einschalten geht nur mit der Fernbedienung */
+.tv.is-unreachable .tv-off-hint { display: block; }
+.tv.is-unreachable .tv-controls { opacity: 0.4; pointer-events: none; }
+.tv-controls { transition: opacity 250ms ease; }
+.tv-top .is-confirm { background: var(--red); color: #fff; }
+
+/* Ambilight: Farbfeld (x = Farbton, y = Sättigung), Helligkeitsbalken, Szenen */
+.ambi { margin-top: 1rem; }
+.sub-head { margin: 0 0 0.5rem; font-size: 0.9375rem; font-weight: 600; }
+.ambi-map {
+  position: relative;
+  height: 9rem;
+  margin-top: 0.75rem;
+  border-radius: var(--radius-ctrl);
+  background:
+    linear-gradient(to bottom, rgb(255 255 255 / 0), #fff),
+    linear-gradient(to right, #f00, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, #f00);
+  touch-action: none;
+  cursor: crosshair;
+}
+.ambi-bright {
+  position: relative;
+  height: var(--tap);
+  margin-top: 0.75rem;
+  border-radius: 999px;
+  background: linear-gradient(to right, #000, var(--ambi-full, #fff));
+  touch-action: none;
+  cursor: pointer;
+}
+/* Griffe: weißer Ring mit Schatten, sitzt mittig auf dem Wert */
+.ambi-knob, .ambi-bright-knob {
+  position: absolute;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin: -0.875rem 0 0 -0.875rem;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  background: var(--ambi-color, transparent);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.35);
+  pointer-events: none;
+}
+.ambi-knob { left: calc(var(--x, 0) * 100%); top: calc(var(--y, 0) * 100%); }
+.ambi-bright-knob { left: calc(0.875rem + var(--v, 1) * (100% - 1.75rem)); top: 50%; }
+.ambi-scenes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-top: 0.75rem; }
+.ambi-scene {
+  min-height: var(--tap);
+  border-radius: var(--radius-ctrl);
+  background: linear-gradient(to bottom, var(--a), var(--b));
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.5);
+  transition: transform 120ms var(--ease-out), box-shadow 150ms ease;
+}
+.ambi-scene:active { transform: scale(0.95); transition-duration: 60ms; }
+.ambi-scene[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--accent); }
+/* „Bild folgen“: eigene Farbe zurücknehmen, Szenen bleiben wählbar */
+.ambi.is-follow .ambi-map, .ambi.is-follow .ambi-bright { opacity: 0.4; }
+
 /* Gleiche Zeilenoptik wie Bass/Höhen/Balance: 44 pt hoch, 17 pt Text, Trennlinien nur zwischen Zeilen */
 .info-list { margin: 0.75rem 0 0; }
 .info-list div {

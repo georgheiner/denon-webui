@@ -64,6 +64,18 @@ class NowPlaying:
 
 
 @dataclass
+class TvState:
+    """Fernseher über jointSPACE (Philips, Port 1925). Im Standby ist sein Netzwerk aus,
+    deshalb heißt ``connected == False`` „aus oder nicht erreichbar“."""
+    connected: bool = False
+    model: str | None = None  # z. B. "37PFL9606K/02"
+    source: str | None = None  # z. B. "hdmi3"
+    sources: list[dict[str, str]] = field(default_factory=list)  # [{code, name}]
+    ambilight_mode: str | None = None  # "internal" (folgt dem Bild), "manual", "expert"
+    ambilight: str | None = None  # zuletzt gesetzt: "#rrggbb" oder "scene:<name>"
+
+
+@dataclass
 class ReceiverState:
     model: str | None = None  # aus der UPnP-Gerätebeschreibung, z. B. "DRA-800H"
     connected: bool = False
@@ -83,6 +95,7 @@ class ReceiverState:
     firmware: str | None = None  # aus SSINFFRM, z. B. "5300-2172-7016-8080"
     heos_version: str | None = None
     update_available: bool | None = None  # laut HEOS player/check_update
+    tv: TvState | None = None  # nur wenn TV_HOST gesetzt ist
     input_names: dict[str, str] = field(default_factory=dict)
     inputs_in_use: list[str] = field(default_factory=list)
 
@@ -120,6 +133,7 @@ class ReceiverState:
             "firmware": self.firmware,
             "heos_version": self.heos_version,
             "update_available": self.update_available,
+            "tv": asdict(self.tv) if self.tv else None,
         }
 
 

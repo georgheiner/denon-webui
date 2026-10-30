@@ -130,6 +130,68 @@
         <div class="inputs" id="inputs" role="radiogroup" aria-labelledby="input-label"></div>
       </section>
 
+      <!-- Philips-Fernseher (jointSPACE), unabhängig vom Receiver; nur sichtbar mit TV_HOST -->
+      <section class="card tv" id="tv" aria-labelledby="tv-label" hidden>
+        <div class="card-head">
+          <h2 id="tv-label">Fernseher</h2>
+          <span class="hint" id="tv-status"></span>
+        </div>
+        <p class="tv-off-hint">Aus oder nicht erreichbar. Einschalten mit der Fernbedienung.</p>
+
+        <div class="tv-controls">
+          <div class="menu-keys tv-top" id="tv-top">
+            <button type="button" class="pill" data-key="standby">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg>
+              <span>Ausschalten</span>
+            </button>
+            <button type="button" class="pill" data-key="ambilight">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="7" width="12" height="9" rx="1.5"/><path d="M3 9.5v4M21 9.5v4M9 4l.8 1.6M15 4l-.8 1.6"/></svg>
+              <span>Ambilight</span>
+            </button>
+          </div>
+
+          <div class="inputs" id="tv-sources" role="radiogroup" aria-label="Eingang am Fernseher"></div>
+
+          <!-- Ambilight: dem Bild folgen oder eigene Farbe (Farbfeld + Helligkeit) bzw. Szene -->
+          <div class="ambi" id="ambi">
+            <h3 class="sub-head">Ambilight</h3>
+            <div class="segmented" id="ambi-mode" role="radiogroup" aria-label="Ambilight-Modus">
+              <span class="seg-thumb"></span>
+              <button type="button" role="radio" data-mode="follow">Bild folgen</button>
+              <button type="button" role="radio" data-mode="custom">Eigene Farbe</button>
+            </div>
+            <div class="ambi-map" id="ambi-map" role="slider" tabindex="0" aria-label="Farbe"
+                 aria-valuemin="0" aria-valuemax="360" aria-valuenow="0">
+              <span class="ambi-knob"></span>
+            </div>
+            <div class="ambi-bright" id="ambi-bright" role="slider" tabindex="0" aria-label="Helligkeit"
+                 aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+              <span class="ambi-bright-knob"></span>
+            </div>
+            <div class="ambi-scenes" id="ambi-scenes">
+              <button type="button" class="ambi-scene" data-scene="tiefsee" style="--a:#0028a0;--b:#00aaaa">Tiefsee</button>
+              <button type="button" class="ambi-scene" data-scene="lava" style="--a:#c80000;--b:#ff8c00">Lava</button>
+              <button type="button" class="ambi-scene" data-scene="natur" style="--a:#6ec828;--b:#c8aa1e">Natur</button>
+              <button type="button" class="ambi-scene" data-scene="leselicht" style="--a:#ffaa5a;--b:#ffaa5a">Leselicht</button>
+            </div>
+          </div>
+
+          <div class="dpad" id="tv-dpad">
+            <button type="button" class="dpad-up" data-key="up" aria-label="Hoch"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg></button>
+            <button type="button" class="dpad-left" data-key="left" aria-label="Links"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+            <button type="button" class="dpad-enter" data-key="ok">OK</button>
+            <button type="button" class="dpad-right" data-key="right" aria-label="Rechts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+            <button type="button" class="dpad-down" data-key="down" aria-label="Runter"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+          </div>
+
+          <div class="menu-keys" id="tv-keys">
+            <button type="button" class="pill" data-key="back">Zurück</button>
+            <button type="button" class="pill" data-key="home">Home</button>
+            <button type="button" class="pill" data-key="options">Optionen</button>
+          </div>
+        </div>
+      </section>
+
       <!-- Bildschirmmenü des Receivers: Bild kommt nur über HDMI, hier nur die Tasten -->
       <section class="card settings needs-power" aria-labelledby="settings-label">
         <div class="card-head">
