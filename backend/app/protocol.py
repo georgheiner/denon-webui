@@ -7,6 +7,7 @@ für sich ausgewertet, ohne Bezug auf die vorherige Anfrage.
 
 from __future__ import annotations
 
+import time
 from dataclasses import asdict, dataclass, field
 
 # Abfragen, die nach jedem Verbindungsaufbau den kompletten Status holen.
@@ -61,6 +62,23 @@ class NowPlaying:
     artist: str | None = None
     album: str | None = None
     state: str | None = None  # "play", "pause", "stop"
+    image_url: str | None = None  # Cover: von HEOS oder per iTunes-Suche nachgeschlagen
+    position: float | None = None  # Sekunden seit Titelanfang (HEOS-Fortschrittsereignis)
+    duration: float | None = None  # Sekunden; None, wenn unbekannt (Bluetooth meldet Unsinn)
+    position_at: float | None = None  # time.monotonic() zu ``position``; läuft bei "play" weiter
+
+    def position_now(self) -> float | None:
+        if self.position is None:
+            return None
+        if self.state == "play" and self.position_at is not None:
+            return self.position + time.monotonic() - self.position_at
+        return self.position
+
+    def to_dict(self) -> dict:
+        d = asdict(self)
+        del d["position_at"]
+        d["position"] = self.position_now()
+        return d
 
 
 @dataclass
@@ -128,7 +146,7 @@ class ReceiverState:
             "treble": self.treble,
             "balance": self.balance,
             "balance_max": BALANCE_MAX,
-            "now_playing": asdict(self.now_playing) if self.now_playing else None,
+            "now_playing": self.now_playing.to_dict() if self.now_playing else None,
             "menu_open": self.menu_open,
             "firmware": self.firmware,
             "heos_version": self.heos_version,

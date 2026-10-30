@@ -31,7 +31,8 @@ TV_HOST = os.environ.get("TV_HOST")  # optional: Philips-Fernseher (jointSPACE)
 FRONTEND_DIR = Path(os.environ.get("FRONTEND_DIR", Path(__file__).resolve().parents[2] / "frontend"))
 
 client = DenonClient(DENON_HOST, DENON_PORT, volume_limit=MAX_VOLUME)
-heos = HeosClient(DENON_HOST, client.state, client.notify)
+COVER_LOOKUP = os.environ.get("COVER_LOOKUP", "on").lower() not in ("off", "0", "false", "no")
+heos = HeosClient(DENON_HOST, client.state, client.notify, cover_lookup=COVER_LOOKUP)
 tv = TvClient(TV_HOST, client.state, client.notify) if TV_HOST else None
 
 

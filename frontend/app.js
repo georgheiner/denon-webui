@@ -327,12 +327,103 @@ function renderPlayback() {
   const card = $("#playback");
   card.hidden = !(np && view("input") === "NET");
   if (card.hidden) return;
-  $("#pb-source").textContent = np.source || "";
+  const source = $("#pb-source");
+  source.hidden = !np.source;
+  source.setAttribute("aria-label", np.source ? `Zuspielung: ${np.source}` : "");
+  source.title = np.source || "";
+  source.classList.toggle("is-airplay", np.source === "AirPlay");
   const playing = view("play_state") === "play";
   const btn = $("#playpause");
   btn.classList.toggle("is-playing", playing);
   btn.setAttribute("aria-label", playing ? "Pause" : "Wiedergabe");
+  card.classList.toggle("is-paused", !playing);
+
+  // AirPlay: direkt nach dem Umschalten (oder Neuverbinden) meldet HEOS noch keine Titeldaten,
+  // sie kommen erst mit dem nächsten Titel. Die Tasten wirken trotzdem.
+  const blind = !np.title && !np.artist;
+  $("#pb-title").textContent = np.title || np.source || "Wiedergabe";
+  $("#pb-artist").textContent = blind ? "Titelinfos folgen mit dem nächsten Titel" : np.artist || "";
+  $("#pb-artist").classList.toggle("is-note", blind);
+  const img = $("#pb-img");
+  if (np.image_url) {
+    if (img.getAttribute("src") !== np.image_url) {
+      img.hidden = true; // erst zeigen, wenn geladen – kein halbes Bild
+      img.src = np.image_url;
+    }
+  } else if (img.hasAttribute("src")) {
+    img.removeAttribute("src");
+    img.hidden = true;
+    card.style.removeProperty("--pb-tint");
+  }
+
+  // Fortschritt: Server meldet die Position etwa alle 5 s, dazwischen lokal weiterzählen
+  // Position unbekannt (erster Bluetooth-Titel nach dem Verbinden): Balken leer, „–:––“
+  const key = `${np.artist}|${np.title}`;
+  if (blind) {
+    progress = null; // Zeit ist bei AirPlay nie bekannt
+  } else if (!progress || progress.key !== key || progress.reported !== np.position || progress.duration !== np.duration) {
+    progress = { key, reported: np.position, pos: np.position, at: performance.now(), duration: np.duration };
+  }
+  renderProgress();
 }
+
+let progress = null;
+function renderProgress() {
+  const box = $("#pb-progress");
+  box.hidden = !progress;
+  if (!progress) return;
+  if (progress.pos == null) {
+    $("#pb-elapsed").textContent = "–:––";
+    $("#pb-remaining").textContent = progress.duration ? clock(progress.duration) : "–:––";
+    $("#pb-bar").style.setProperty("--pb", 0);
+    box.classList.remove("no-duration");
+    return;
+  }
+  const playing = view("play_state") === "play";
+  if (playing) {
+    const now = performance.now();
+    progress.pos += (now - progress.at) / 1000;
+    progress.at = now;
+  } else {
+    progress.at = performance.now();
+  }
+  const { pos, duration } = progress;
+  const shown = duration ? Math.min(pos, duration) : pos;
+  $("#pb-elapsed").textContent = clock(shown);
+  $("#pb-remaining").textContent = duration ? `−${clock(duration - shown)}` : "–:––";
+  $("#pb-bar").style.setProperty("--pb", duration ? shown / duration : 0);
+}
+
+function clock(seconds) {
+  const s = Math.max(0, Math.floor(seconds));
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = String(s % 60).padStart(2, "0");
+  return h ? `${h}:${String(m).padStart(2, "0")}:${sec}` : `${m}:${sec}`;
+}
+
+// Karte leicht in der Durchschnittsfarbe des Covers tönen (Cover-Server erlauben CORS)
+function coverTint(img) {
+  try {
+    const c = document.createElement("canvas");
+    c.width = c.height = 8;
+    const ctx = c.getContext("2d", { willReadFrequently: true });
+    ctx.drawImage(img, 0, 0, 8, 8);
+    const d = ctx.getImageData(0, 0, 8, 8).data;
+    let r = 0, g = 0, b = 0;
+    for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; b += d[i + 2]; }
+    const n = d.length / 4;
+    return `rgb(${Math.round(r / n)} ${Math.round(g / n)} ${Math.round(b / n)})`;
+  } catch {
+    return null; // Bild ohne CORS: ohne Tönung
+  }
+}
+
+$("#pb-img").addEventListener("load", (e) => {
+  e.target.hidden = false;
+  const tint = coverTint(e.target);
+  if (tint) $("#playback").style.setProperty("--pb-tint", tint);
+});
+$("#pb-img").addEventListener("error", (e) => { e.target.hidden = true; });
+setInterval(() => { if (progress && !$("#playback").hidden) renderProgress(); }, 500);
 
 let npText = "";
 function renderNowPlaying(show) {

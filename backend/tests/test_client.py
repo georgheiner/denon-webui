@@ -137,6 +137,32 @@ def test_reconnects_after_drop():
     run(scenario())
 
 
+def test_backoff_grows_when_receiver_closes_at_once():
+    # Hängender DRA-800H: nimmt die Verbindung an und schließt sie sofort, ohne zu antworten
+    async def scenario():
+        connections = 0
+
+        async def slam(reader, writer):
+            nonlocal connections
+            connections += 1
+            writer.close()
+
+        server = await asyncio.start_server(slam, "127.0.0.1", 0)
+        port = server.sockets[0].getsockname()[1]
+        client = DenonClient("127.0.0.1", port, min_backoff=0.05, max_backoff=5)
+        await client.start()
+        try:
+            await asyncio.sleep(1.2)
+            # feste 0,05 s wären ~20 Versuche; wachsend 0,1 + 0,2 + 0,4 + 0,8 → höchstens 5
+            assert 2 <= connections <= 5
+        finally:
+            await client.stop()
+            server.close()
+            await server.wait_closed()
+
+    run(scenario())
+
+
 def test_send_while_disconnected_raises():
     client = DenonClient("127.0.0.1", 9)
     try:

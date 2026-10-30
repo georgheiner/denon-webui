@@ -72,12 +72,27 @@
       </section>
 
       <!-- Transporttasten wie auf der Fernbedienung; nur sichtbar, wenn über HEOS etwas läuft -->
-      <section class="card playback needs-power" id="playback" aria-labelledby="pb-label" hidden>
-        <div class="card-head">
-          <h2 id="pb-label">Wiedergabe</h2>
-          <span class="pb-source" id="pb-source"></span>
+      <!-- Mini-Player wie auf dem iOS-Sperrbildschirm; nur sichtbar, wenn über HEOS etwas läuft.
+           Hintergrund leicht in der Farbe des Covers getönt (--pb-tint). -->
+      <section class="card playback needs-power" id="playback" aria-label="Wiedergabe" hidden>
+        <div class="pb-now">
+          <!-- Cover von HEOS oder nachgeschlagen; sonst Platzhalter mit Note -->
+          <div class="pb-cover" id="pb-cover">
+            <svg class="pb-cover-placeholder" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg>
+            <img id="pb-img" alt="" crossorigin="anonymous" referrerpolicy="no-referrer" hidden>
+          </div>
+          <div class="pb-meta">
+            <p class="pb-title" id="pb-title"></p>
+            <p class="pb-artist" id="pb-artist"></p>
+          </div>
+        </div>
+        <div class="pb-progress" id="pb-progress" hidden>
+          <span class="pb-time" id="pb-elapsed">0:00</span>
+          <div class="pb-bar" id="pb-bar"><span class="pb-bar-fill"></span></div>
+          <span class="pb-time" id="pb-remaining"></span>
         </div>
         <div class="transport">
+          <span></span>
           <!-- Hörbuch-/Podcast-Apps springen bei Zurück/Weiter im Titel → Spul-Symbole wie ◀◀ ▶▶ auf der Fernbedienung -->
           <button class="transport-btn" id="prev" type="button" aria-label="Zurückspulen">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11.5 6.3v11.4a.8.8 0 0 1-1.2.7L1.9 12.7a.8.8 0 0 1 0-1.4l8.4-5.7a.8.8 0 0 1 1.2.7z"/><path d="M22 6.3v11.4a.8.8 0 0 1-1.2.7l-8.4-5.7a.8.8 0 0 1 0-1.4l8.4-5.7a.8.8 0 0 1 1.2.7z"/></svg>
@@ -89,6 +104,11 @@
           <button class="transport-btn" id="next" type="button" aria-label="Vorspulen">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 6.3v11.4a.8.8 0 0 0 1.2.7l8.4-5.7a.8.8 0 0 0 0-1.4L3.2 5.6a.8.8 0 0 0-1.2.7z"/><path d="M12.5 6.3v11.4a.8.8 0 0 0 1.2.7l8.4-5.7a.8.8 0 0 0 0-1.4l-8.4-5.7a.8.8 0 0 0-1.2.7z"/></svg>
           </button>
+          <!-- Zuspielung (Bluetooth/AirPlay) wie das Ausgabe-Symbol im Mini-Player -->
+          <span class="pb-source" id="pb-source" role="img">
+            <svg class="i-bt" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9.5h3.5L11 5.5v13l-4.5-4H3z"/><path d="M15.5 8.5l5 7-2.5 2.5V6l2.5 2.5-5 7"/></svg>
+            <svg class="i-airplay" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 17.5a8.5 8.5 0 1 1 11 0"/><path d="M8.8 14.8a5 5 0 1 1 6.4 0"/><path d="M12 15l4 5H8z" fill="currentColor"/></svg>
+          </span>
         </div>
       </section>
 

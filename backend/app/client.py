@@ -46,6 +46,7 @@ class DenonClient:
         heartbeat_interval: float = 30.0,
         idle_timeout: float = 90.0,
         connect_timeout: float = 5.0,
+        min_backoff: float = 1.0,
         max_backoff: float = 30.0,
         volume_limit: float | None = None,
     ) -> None:
@@ -55,7 +56,9 @@ class DenonClient:
         self.heartbeat_interval = heartbeat_interval
         self.idle_timeout = idle_timeout
         self.connect_timeout = connect_timeout
+        self.min_backoff = min_backoff
         self.max_backoff = max_backoff
+        self._got_data = False
 
         self.state = ReceiverState()
         if volume_limit is not None:
@@ -135,7 +138,7 @@ class DenonClient:
             self.notify()
 
     async def _run(self) -> None:
-        backoff = 1.0
+        backoff = self.min_backoff
         while True:
             try:
                 reader, writer = await asyncio.wait_for(
@@ -149,7 +152,7 @@ class DenonClient:
                 continue
 
             log.info("Verbunden mit %s:%s", self.host, self.port)
-            backoff = 1.0
+            self._got_data = False
             self._writer = writer
             self._last_rx = asyncio.get_running_loop().time()
             self._pending.clear()
@@ -173,11 +176,15 @@ class DenonClient:
                 await asyncio.gather(*tasks, return_exceptions=True)
                 await self._close()
                 self._set_connected(False)
+            # Pause erst nach einer echten Antwort zurücksetzen: Ein hängender Receiver nimmt
+            # Verbindungen an und schließt sie sofort (am DRA-800H beobachtet) – sonst jede Sekunde neu
+            backoff = self.min_backoff if self._got_data else min(backoff * 2, self.max_backoff)
             await asyncio.sleep(backoff)
 
     async def _read_loop(self, reader: asyncio.StreamReader) -> None:
         while True:
             data = await reader.readuntil(b"\r")
+            self._got_data = True
             self._last_rx = asyncio.get_running_loop().time()
             line = data.decode("ascii", errors="replace")
             log.debug("<- %r", line)
